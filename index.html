@@ -6,6 +6,8 @@
     <title>Weekly Mock Test Tracker (PCM)</title>
     <!-- Tailwind CSS CDN for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN for graphing -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* Custom styles for Inter font and general body styling */
         body {
@@ -152,6 +154,17 @@
             </form>
         </div>
 
+        <!-- Graphical Analysis Section -->
+        <div class="mb-8 p-6 bg-white rounded-lg shadow-md">
+            <h2 class="text-2xl font-bold text-indigo-600 mb-5">Performance Trend (Total Score)</h2>
+            <div class="relative h-96 w-full">
+                <canvas id="scoreChart"></canvas>
+            </div>
+            <div id="noChartDataMessage" class="text-center py-4 text-gray-500 text-base hidden">
+                Add more test results to see your performance trend here!
+            </div>
+        </div>
+
         <!-- Display Area for Mock Test Results -->
         <div class="overflow-x-auto rounded-lg shadow-md">
             <h2 class="text-2xl font-bold text-indigo-600 mb-5 p-4 bg-indigo-50 rounded-t-lg">Your Mock Test Results</h2>
@@ -203,18 +216,34 @@
     <script type="module">
         // Firebase SDK imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, query, onSnapshot, addDoc, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Global variables provided by the environment for Firebase configuration
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        // =====================================================================
+        // IMPORTANT: PASTE YOUR FIREBASE CONFIGURATION HERE
+        //
+        // Go to your Firebase project settings -> "Your apps" section -> "Web app"
+        // Copy the `firebaseConfig` object provided there and paste it below.
+        // Make sure to replace the entire placeholder object.
+        // =====================================================================
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY", // Example: "AIzaSyC0-..."
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID", // Example: "my-mock-tracker-12345"
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID" // Example: "1:1234567890:web:abcdef12345"
+        };
+        // =====================================================================
 
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
+
+        // Define a fixed application ID for the collection path.
+        // This is used instead of __app_id which is not available on GitHub Pages.
+        const APP_ID_FOR_FIRESTORE = "mocktesttracker-pcm"; // You can change this to any unique string
 
         // Variables to store current user ID and Firestore unsubscribe function
         let currentUserId = null;
@@ -223,12 +252,18 @@
         // Array to store mock test results, updated by Firestore's real-time listener
         let mockTestResults = [];
 
+        // Chart.js instance variable
+        let scoreChartInstance = null;
+
         // Get references to HTML elements
         const testForm = document.getElementById('testForm');
         const resultsTableBody = document.getElementById('resultsTableBody');
         const noResultsMessage = document.getElementById('noResultsMessage');
         const userIdDisplay = document.getElementById('userIdDisplay');
         const loadingMessage = document.getElementById('loadingMessage');
+        const scoreChartCanvas = document.getElementById('scoreChart');
+        const noChartDataMessage = document.getElementById('noChartDataMessage');
+
 
         // Message Box elements
         const messageBox = document.getElementById('messageBox');
@@ -302,17 +337,16 @@
 
             if (mockTestResults.length === 0) {
                 noResultsMessage.classList.remove('hidden');
-                return;
             } else {
                 noResultsMessage.classList.add('hidden');
             }
 
-            // Sort results by date in descending order (most recent first)
-            // Note: Firestore orderBy is avoided due to potential index issues,
-            // so sorting is done client-side.
-            const sortedResults = [...mockTestResults].sort((a, b) => new Date(b.testDate) - new Date(a.testDate));
+            // Sort results by date in ascending order for the chart (oldest first)
+            // and descending order for the table (most recent first)
+            const sortedResultsForChart = [...mockTestResults].sort((a, b) => new Date(a.testDate) - new Date(b.testDate));
+            const sortedResultsForTable = [...mockTestResults].sort((a, b) => new Date(b.testDate) - new Date(a.testDate));
 
-            sortedResults.forEach((result) => {
+            sortedResultsForTable.forEach((result) => {
                 const row = resultsTableBody.insertRow();
                 row.className = 'hover:bg-gray-50'; // Add hover effect to rows
 
@@ -351,7 +385,131 @@
                 actionsCell.appendChild(editButton);
                 actionsCell.appendChild(deleteButton);
             });
+
+            // Update the chart after rendering the table
+            updateScoreChart(sortedResultsForChart);
         }
+
+        /**
+         * Updates the Chart.js graph with the latest mock test results.
+         * @param {Array} data - The sorted array of mock test results.
+         */
+        function updateScoreChart(data) {
+            if (data.length < 2) { // Need at least two points to draw a meaningful line
+                if (scoreChartInstance) {
+                    scoreChartInstance.destroy(); // Destroy existing chart if not enough data
+                    scoreChartInstance = null;
+                }
+                noChartDataMessage.classList.remove('hidden');
+                scoreChartCanvas.classList.add('hidden');
+                return;
+            } else {
+                noChartDataMessage.classList.add('hidden');
+                scoreChartCanvas.classList.remove('hidden');
+            }
+
+            const labels = data.map(result => result.testDate);
+            const scores = data.map(result => result.yourScore);
+            const maxMarks = data.map(result => result.maxMarks);
+
+            // Determine the maximum possible score across all tests for chart scaling
+            const overallMaxScore = Math.max(...maxMarks);
+
+            const chartData = {
+                labels: labels,
+                datasets: [{
+                    label: 'Your Total Score',
+                    data: scores,
+                    borderColor: 'rgb(99, 102, 241)', // Tailwind indigo-500
+                    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                    fill: true,
+                    tension: 0.3, // Smooth the line
+                    pointBackgroundColor: 'rgb(99, 102, 241)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgb(99, 102, 241)'
+                }]
+            };
+
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false, // Allow canvas to fill parent container
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Total Score Trend Over Time',
+                        font: {
+                            size: 16,
+                            weight: 'bold'
+                        },
+                        color: '#334155'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y + ' / ' + data[context.dataIndex].maxMarks;
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'category', // For date strings
+                        title: {
+                            display: true,
+                            text: 'Test Date',
+                            color: '#475569'
+                        },
+                        ticks: {
+                            color: '#64748b'
+                        },
+                        grid: {
+                            color: 'rgba(226, 232, 240, 0.5)'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Score',
+                            color: '#475569'
+                        },
+                        min: 0,
+                        max: overallMaxScore > 0 ? overallMaxScore + 50 : 300, // Adjust max for better visual
+                        ticks: {
+                            color: '#64748b'
+                        },
+                        grid: {
+                            color: 'rgba(226, 232, 240, 0.5)'
+                        }
+                    }
+                }
+            };
+
+            if (scoreChartInstance) {
+                // Update existing chart
+                scoreChartInstance.data = chartData;
+                scoreChartInstance.options = chartOptions; // Update options too
+                scoreChartInstance.update();
+            } else {
+                // Create new chart
+                const ctx = scoreChartCanvas.getContext('2d');
+                scoreChartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: chartData,
+                    options: chartOptions
+                });
+            }
+        }
+
 
         // Variable to hold the ID of the result being edited
         let editingResultId = null;
@@ -399,12 +557,12 @@
             try {
                 if (editingResultId !== null) {
                     // Update existing result in Firestore
-                    const docRef = doc(db, `artifacts/${appId}/users/${currentUserId}/mockTestResults`, editingResultId);
+                    const docRef = doc(db, `artifacts/${APP_ID_FOR_FIRESTORE}/users/${currentUserId}/mockTestResults`, editingResultId);
                     await updateDoc(docRef, resultData);
                     showMessageBox('Success', 'Mock test result updated successfully!', false);
                 } else {
                     // Add new result to Firestore
-                    await addDoc(collection(db, `artifacts/${appId}/users/${currentUserId}/mockTestResults`), resultData);
+                    await addDoc(collection(db, `artifacts/${APP_ID_FOR_FIRESTORE}/users/${currentUserId}/mockTestResults`), resultData);
                     showMessageBox('Success', 'Mock test result added successfully!', false);
                 }
             } catch (e) {
@@ -462,7 +620,7 @@
 
             if (confirmDelete) {
                 try {
-                    const docRef = doc(db, `artifacts/${appId}/users/${currentUserId}/mockTestResults`, id);
+                    const docRef = doc(db, `artifacts/${APP_ID_FOR_FIRESTORE}/users/${currentUserId}/mockTestResults`, id);
                     await deleteDoc(docRef);
                     showMessageBox('Success', 'Mock test result deleted successfully!', false);
                 } catch (e) {
@@ -483,7 +641,7 @@
             }
 
             // Define the collection path for the current user's private data
-            const userResultsCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/mockTestResults`);
+            const userResultsCollectionRef = collection(db, `artifacts/${APP_ID_FOR_FIRESTORE}/users/${currentUserId}/mockTestResults`);
             const q = query(userResultsCollectionRef); // No orderBy to avoid needing indexes
 
             // Set up the real-time listener
@@ -493,7 +651,7 @@
                     // Add document ID along with its data
                     mockTestResults.push({ id: doc.id, ...doc.data() });
                 });
-                renderResults(); // Re-render the UI with the latest data
+                renderResults(); // Re-render the UI and update the chart with the latest data
                 loadingMessage.classList.add('hidden'); // Hide loading message once data is loaded
             }, (error) => {
                 console.error("Error fetching documents from Firestore: ", error);
@@ -517,31 +675,13 @@
                 userIdDisplay.textContent = 'Authenticating...';
                 loadingMessage.classList.remove('hidden'); // Show loading message
 
-                if (initialAuthToken) {
-                    // Try to sign in with the provided custom token
-                    try {
-                        await signInWithCustomToken(auth, initialAuthToken);
-                    } catch (error) {
-                        console.error("Error signing in with custom token:", error);
-                        showMessageBox('Authentication Failed', `Failed to sign in with provided token. Attempting anonymous sign-in.`, false);
-                        // Fallback to anonymous sign-in if custom token fails
-                        try {
-                            await signInAnonymously(auth);
-                        } catch (anonError) {
-                            console.error("Error signing in anonymously:", anonError);
-                            showMessageBox('Authentication Error', `Failed to authenticate: ${anonError.message}`, false);
-                            loadingMessage.classList.add('hidden'); // Hide loading if all auth fails
-                        }
-                    }
-                } else {
-                    // No custom token provided, sign in anonymously
-                    try {
-                        await signInAnonymously(auth);
-                    } catch (anonError) {
-                        console.error("Error signing in anonymously:", anonError);
-                        showMessageBox('Authentication Error', `Failed to authenticate anonymously: ${anonError.message}`, false);
-                        loadingMessage.classList.add('hidden'); // Hide loading if all auth fails
-                    }
+                // Sign in anonymously for GitHub Pages deployment
+                try {
+                    await signInAnonymously(auth);
+                } catch (anonError) {
+                    console.error("Error signing in anonymously:", anonError);
+                    showMessageBox('Authentication Error', `Failed to authenticate anonymously: ${anonError.message}`, false);
+                    loadingMessage.classList.add('hidden'); // Hide loading if all auth fails
                 }
             }
         });

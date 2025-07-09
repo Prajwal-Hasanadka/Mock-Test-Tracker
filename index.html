@@ -46,6 +46,20 @@
     <div class="max-w-7xl mx-auto bg-white rounded-xl shadow-lg p-6 sm:p-8">
         <h1 class="text-3xl sm:text-4xl font-extrabold text-center text-indigo-700 mb-8">Weekly Mock Test Tracker (Physics, Chemistry, Mathematics)</h1>
 
+        <!-- Navigation Buttons -->
+        <nav class="mb-8 flex justify-center space-x-6">
+            <button id="homeNavBtn"
+                    class="px-5 py-2 rounded-md text-lg font-medium transition duration-150 ease-in-out
+                           bg-indigo-600 text-white shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Home
+            </button>
+            <button id="chartNavBtn"
+                    class="px-5 py-2 rounded-md text-lg font-medium transition duration-150 ease-in-out
+                           bg-gray-200 text-gray-800 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Charts
+            </button>
+        </nav>
+
         <!-- User ID Display and Loading Message -->
         <div class="text-center mb-6">
             <p id="userIdDisplay" class="text-sm text-gray-600 mb-2">Authenticating...</p>
@@ -55,147 +69,152 @@
             </div>
         </div>
 
-        <!-- Form to Add New Test Results -->
-        <div class="mb-8 p-6 bg-indigo-50 rounded-lg shadow-md">
-            <h2 class="text-2xl font-bold text-indigo-600 mb-5">Add New Test Result</h2>
-            <form id="testForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <!-- Test Date -->
-                <div>
-                    <label for="testDate" class="block text-sm font-medium text-gray-700 mb-1">Test Date</label>
-                    <input type="date" id="testDate" required
-                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                </div>
-                <!-- Test Name/ID -->
-                <div>
-                    <label for="testName" class="block text-sm font-medium text-gray-700 mb-1">Test Name/ID</label>
-                    <input type="text" id="testName" placeholder="e.g., JEE Mock 1" required
-                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                </div>
-                <!-- Max Marks -->
-                <div>
-                    <label for="maxMarks" class="block text-sm font-medium text-gray-700 mb-1">Max Marks</label>
-                    <input type="number" id="maxMarks" placeholder="e.g., 300" required min="1"
-                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                </div>
-                <!-- Your Total Score -->
-                <div>
-                    <label for="yourScore" class="block text-sm font-medium text-gray-700 mb-1">Your Total Score</label>
-                    <input type="number" id="yourScore" placeholder="e.g., 180" required min="0"
-                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                </div>
-                <!-- Rank (Optional) -->
-                <div>
-                    <label for="rank" class="block text-sm font-medium text-gray-700 mb-1">Rank (Optional)</label>
-                    <input type="number" id="rank" placeholder="e.g., 12" min="1"
-                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                </div>
-                <!-- Time Taken (Minutes) -->
-                <div>
-                    <label for="timeTaken" class="block text-sm font-medium text-gray-700 mb-1">Time Taken (Minutes)</label>
-                    <input type="number" id="timeTaken" placeholder="e.g., 180" min="0"
-                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                </div>
-                <!-- Physics Score -->
-                <div>
-                    <label for="physicsScore" class="block text-sm font-medium text-gray-700 mb-1">Physics Score</label>
-                    <input type="number" id="physicsScore" placeholder="e.g., 60" min="0"
-                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                </div>
-                <!-- Chemistry Score -->
-                <div>
-                    <label for="chemistryScore" class="block text-sm font-medium text-gray-700 mb-1">Chemistry Score</label>
-                    <input type="number" id="chemistryScore" placeholder="e.g., 55" min="0"
-                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                </div>
-                <!-- Mathematics Score -->
-                <div>
-                    <label for="mathScore" class="block text-sm font-medium text-gray-700 mb-1">Mathematics Score</label>
-                    <input type="number" id="mathScore" placeholder="e.g., 65" min="0"
-                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                </div>
-                <!-- Total Questions -->
-                <div>
-                    <label for="totalQuestions" class="block text-sm font-medium text-gray-700 mb-1">Total Questions</label>
-                    <input type="number" id="totalQuestions" placeholder="e.g., 75" min="1"
-                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                </div>
-                <!-- Correct Answers -->
-                <div>
-                    <label for="correctAnswers" class="block text-sm font-medium text-gray-700 mb-1">Correct Answers</label>
-                    <input type="number" id="correctAnswers" placeholder="e.g., 50" min="0"
-                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                </div>
-                <!-- Incorrect Answers -->
-                <div>
-                    <label for="incorrectAnswers" class="block text-sm font-medium text-gray-700 mb-1">Incorrect Answers</label>
-                    <input type="number" id="incorrectAnswers" placeholder="e.g., 15" min="0"
-                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                </div>
-                <!-- Unattempted Questions -->
-                <div>
-                    <label for="unattemptedQuestions" class="block text-sm font-medium text-gray-700 mb-1">Unattempted Questions</label>
-                    <input type="number" id="unattemptedQuestions" placeholder="e.g., 10" min="0"
-                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                </div>
-                <!-- Remarks/Areas for Improvement -->
-                <div class="lg:col-span-3">
-                    <label for="remarks" class="block text-sm font-medium text-gray-700 mb-1">Remarks/Areas for Improvement</label>
-                    <textarea id="remarks" rows="3" placeholder="e.g., Need to improve speed in Physics, revise Chemical Bonding."
-                              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"></textarea>
-                </div>
+        <!-- Home Section: Form and Table -->
+        <div id="homeSection">
+            <!-- Form to Add New Test Results -->
+            <div class="mb-8 p-6 bg-indigo-50 rounded-lg shadow-md">
+                <h2 class="text-2xl font-bold text-indigo-600 mb-5">Add New Test Result</h2>
+                <form id="testForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Test Date -->
+                    <div>
+                        <label for="testDate" class="block text-sm font-medium text-gray-700 mb-1">Test Date</label>
+                        <input type="date" id="testDate" required
+                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <!-- Test Name/ID -->
+                    <div>
+                        <label for="testName" class="block text-sm font-medium text-gray-700 mb-1">Test Name/ID</label>
+                        <input type="text" id="testName" placeholder="e.g., JEE Mock 1" required
+                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <!-- Max Marks -->
+                    <div>
+                        <label for="maxMarks" class="block text-sm font-medium text-gray-700 mb-1">Max Marks</label>
+                        <input type="number" id="maxMarks" placeholder="e.g., 300" required min="1"
+                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <!-- Your Total Score -->
+                    <div>
+                        <label for="yourScore" class="block text-sm font-medium text-gray-700 mb-1">Your Total Score</label>
+                        <input type="number" id="yourScore" placeholder="e.g., 180" required min="0"
+                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <!-- Rank (Optional) -->
+                    <div>
+                        <label for="rank" class="block text-sm font-medium text-gray-700 mb-1">Rank (Optional)</label>
+                        <input type="number" id="rank" placeholder="e.g., 12" min="1"
+                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <!-- Time Taken (Minutes) -->
+                    <div>
+                        <label for="timeTaken" class="block text-sm font-medium text-gray-700 mb-1">Time Taken (Minutes)</label>
+                        <input type="number" id="timeTaken" placeholder="e.g., 180" min="0"
+                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <!-- Physics Score -->
+                    <div>
+                        <label for="physicsScore" class="block text-sm font-medium text-gray-700 mb-1">Physics Score</label>
+                        <input type="number" id="physicsScore" placeholder="e.g., 60" min="0"
+                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <!-- Chemistry Score -->
+                    <div>
+                        <label for="chemistryScore" class="block text-sm font-medium text-gray-700 mb-1">Chemistry Score</label>
+                        <input type="number" id="chemistryScore" placeholder="e.g., 55" min="0"
+                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <!-- Mathematics Score -->
+                    <div>
+                        <label for="mathScore" class="block text-sm font-medium text-gray-700 mb-1">Mathematics Score</label>
+                        <input type="number" id="mathScore" placeholder="e.g., 65" min="0"
+                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <!-- Total Questions -->
+                    <div>
+                        <label for="totalQuestions" class="block text-sm font-medium text-gray-700 mb-1">Total Questions</label>
+                        <input type="number" id="totalQuestions" placeholder="e.g., 75" min="1"
+                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <!-- Correct Answers -->
+                    <div>
+                        <label for="correctAnswers" class="block text-sm font-medium text-gray-700 mb-1">Correct Answers</label>
+                        <input type="number" id="correctAnswers" placeholder="e.g., 50" min="0"
+                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <!-- Incorrect Answers -->
+                    <div>
+                        <label for="incorrectAnswers" class="block text-sm font-medium text-gray-700 mb-1">Incorrect Answers</label>
+                        <input type="number" id="incorrectAnswers" placeholder="e.g., 15" min="0"
+                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <!-- Unattempted Questions -->
+                    <div>
+                        <label for="unattemptedQuestions" class="block text-sm font-medium text-gray-700 mb-1">Unattempted Questions</label>
+                        <input type="number" id="unattemptedQuestions" placeholder="e.g., 10" min="0"
+                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <!-- Remarks/Areas for Improvement -->
+                    <div class="lg:col-span-3">
+                        <label for="remarks" class="block text-sm font-medium text-gray-700 mb-1">Remarks/Areas for Improvement</label>
+                        <textarea id="remarks" rows="3" placeholder="e.g., Need to improve speed in Physics, revise Chemical Bonding."
+                                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"></textarea>
+                    </div>
 
-                <!-- Submit Button -->
-                <div class="lg:col-span-3 flex justify-end">
-                    <button type="submit"
-                            class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
-                        Add Result
-                    </button>
+                    <!-- Submit Button -->
+                    <div class="lg:col-span-3 flex justify-end">
+                        <button type="submit"
+                                class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
+                            Add Result
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Display Area for Mock Test Results -->
+            <div class="overflow-x-auto rounded-lg shadow-md">
+                <h2 class="text-2xl font-bold text-indigo-600 mb-5 p-4 bg-indigo-50 rounded-t-lg">Your Mock Test Results</h2>
+                <table class="min-w-full divide-y divide-gray-200 bg-white">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">Test Date</th>
+                            <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Test Name/ID</th>
+                            <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Max Marks</th>
+                            <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Your Score</th>
+                            <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Percentage</th>
+                            <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
+                            <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Time Taken (Min)</th>
+                            <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Physics</th>
+                            <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Chemistry</th>
+                            <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Mathematics</th>
+                            <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Total Qs</th>
+                            <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Correct</th>
+                            <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Incorrect</th>
+                            <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Unattempted</th>
+                            <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Accuracy (%)</th>
+                            <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Remarks</th>
+                            <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsTableBody" class="bg-white divide-y divide-gray-200">
+                        <!-- Results will be dynamically inserted here by JavaScript -->
+                    </tbody>
+                </table>
+                <div id="noResultsMessage" class="text-center py-8 text-gray-500 text-lg hidden">
+                    No mock test results yet. Add your first result above!
                 </div>
-            </form>
+            </div>
         </div>
 
-        <!-- Graphical Analysis Section -->
-        <div class="mb-8 p-6 bg-white rounded-lg shadow-md">
-            <h2 class="text-2xl font-bold text-indigo-600 mb-5">Performance Trend (Total Score)</h2>
-            <div class="relative h-96 w-full">
-                <canvas id="scoreChart"></canvas>
-            </div>
-            <div id="noChartDataMessage" class="text-center py-4 text-gray-500 text-base hidden">
-                Add more test results to see your performance trend here!
-            </div>
-        </div>
-
-        <!-- Display Area for Mock Test Results -->
-        <div class="overflow-x-auto rounded-lg shadow-md">
-            <h2 class="text-2xl font-bold text-indigo-600 mb-5 p-4 bg-indigo-50 rounded-t-lg">Your Mock Test Results</h2>
-            <table class="min-w-full divide-y divide-gray-200 bg-white">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">Test Date</th>
-                        <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Test Name/ID</th>
-                        <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Max Marks</th>
-                        <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Your Score</th>
-                        <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Percentage</th>
-                        <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
-                        <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Time Taken (Min)</th>
-                        <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Physics</th>
-                        <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Chemistry</th>
-                        <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Mathematics</th>
-                        <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Total Qs</th>
-                        <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Correct</th>
-                        <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Incorrect</th>
-                        <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Unattempted</th>
-                        <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Accuracy (%)</th>
-                        <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Remarks</th>
-                        <th scope="col" class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="resultsTableBody" class="bg-white divide-y divide-gray-200">
-                    <!-- Results will be dynamically inserted here by JavaScript -->
-                </tbody>
-            </table>
-            <div id="noResultsMessage" class="text-center py-8 text-gray-500 text-lg hidden">
-                No mock test results yet. Add your first result above!
+        <!-- Chart Section -->
+        <div id="chartSection" class="hidden">
+            <div class="mb-8 p-6 bg-white rounded-lg shadow-md">
+                <h2 class="text-2xl font-bold text-indigo-600 mb-5">Performance Trend (Total Score)</h2>
+                <div class="relative h-96 w-full">
+                    <canvas id="scoreChart"></canvas>
+                </div>
+                <div id="noChartDataMessage" class="text-center py-4 text-gray-500 text-base hidden">
+                    Add more test results to see your performance trend here!
+                </div>
             </div>
         </div>
 
@@ -264,6 +283,12 @@
         const scoreChartCanvas = document.getElementById('scoreChart');
         const noChartDataMessage = document.getElementById('noChartDataMessage');
 
+        // New elements for section toggling
+        const homeSection = document.getElementById('homeSection');
+        const chartSection = document.getElementById('chartSection');
+        const homeNavBtn = document.getElementById('homeNavBtn');
+        const chartNavBtn = document.getElementById('chartNavBtn');
+
 
         // Message Box elements
         const messageBox = document.getElementById('messageBox');
@@ -306,6 +331,36 @@
         }
 
         /**
+         * Toggles the visibility of sections and updates navigation button styles.
+         * @param {string} sectionId - The ID of the section to show ('homeSection' or 'chartSection').
+         */
+        function showSection(sectionId) {
+            if (sectionId === 'homeSection') {
+                homeSection.classList.remove('hidden');
+                chartSection.classList.add('hidden');
+                homeNavBtn.classList.remove('bg-gray-200', 'text-gray-800', 'hover:bg-gray-300');
+                homeNavBtn.classList.add('bg-indigo-600', 'text-white', 'hover:bg-indigo-700');
+                chartNavBtn.classList.remove('bg-indigo-600', 'text-white', 'hover:bg-indigo-700');
+                chartNavBtn.classList.add('bg-gray-200', 'text-gray-800', 'hover:bg-gray-300');
+            } else if (sectionId === 'chartSection') {
+                homeSection.classList.add('hidden');
+                chartSection.classList.remove('hidden');
+                homeNavBtn.classList.remove('bg-indigo-600', 'text-white', 'hover:bg-indigo-700');
+                homeNavBtn.classList.add('bg-gray-200', 'text-gray-800', 'hover:bg-gray-300');
+                chartNavBtn.classList.remove('bg-gray-200', 'text-gray-800', 'hover:bg-gray-300');
+                chartNavBtn.classList.add('bg-indigo-600', 'text-white', 'hover:bg-indigo-700');
+                // Ensure chart is rendered/updated when navigating to chart section
+                const sortedResultsForChart = [...mockTestResults].sort((a, b) => new Date(a.testDate) - new Date(b.testDate));
+                updateScoreChart(sortedResultsForChart);
+            }
+        }
+
+        // Add event listeners for navigation buttons
+        homeNavBtn.addEventListener('click', () => showSection('homeSection'));
+        chartNavBtn.addEventListener('click', () => showSection('chartSection'));
+
+
+        /**
          * Calculates the percentage score.
          * @param {number} score - The student's score.
          * @param {number} maxMarks - The maximum possible marks.
@@ -341,9 +396,7 @@
                 noResultsMessage.classList.add('hidden');
             }
 
-            // Sort results by date in ascending order for the chart (oldest first)
-            // and descending order for the table (most recent first)
-            const sortedResultsForChart = [...mockTestResults].sort((a, b) => new Date(a.testDate) - new Date(b.testDate));
+            // Sort results by date in descending order for the table (most recent first)
             const sortedResultsForTable = [...mockTestResults].sort((a, b) => new Date(b.testDate) - new Date(a.testDate));
 
             sortedResultsForTable.forEach((result) => {
@@ -385,9 +438,6 @@
                 actionsCell.appendChild(editButton);
                 actionsCell.appendChild(deleteButton);
             });
-
-            // Update the chart after rendering the table
-            updateScoreChart(sortedResultsForChart);
         }
 
         /**
@@ -395,6 +445,12 @@
          * @param {Array} data - The sorted array of mock test results.
          */
         function updateScoreChart(data) {
+            // Only update chart if the chart section is currently visible
+            // This prevents errors if canvas is not in the DOM
+            if (chartSection.classList.contains('hidden')) {
+                return;
+            }
+
             if (data.length < 2) { // Need at least two points to draw a meaningful line
                 if (scoreChartInstance) {
                     scoreChartInstance.destroy(); // Destroy existing chart if not enough data
@@ -651,7 +707,10 @@
                     // Add document ID along with its data
                     mockTestResults.push({ id: doc.id, ...doc.data() });
                 });
-                renderResults(); // Re-render the UI and update the chart with the latest data
+                renderResults(); // Re-render the UI with the latest data for the table
+                // Sort results by date in ascending order for the chart (oldest first)
+                const sortedResultsForChart = [...mockTestResults].sort((a, b) => new Date(a.testDate) - new Date(b.testDate));
+                updateScoreChart(sortedResultsForChart); // Update the chart with the latest data
                 loadingMessage.classList.add('hidden'); // Hide loading message once data is loaded
             }, (error) => {
                 console.error("Error fetching documents from Firestore: ", error);
@@ -692,6 +751,11 @@
                 unsubscribe();
                 console.log("Firestore listener unsubscribed.");
             }
+        });
+
+        // Initialize the view to the Home section when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            showSection('homeSection');
         });
     </script>
 </body>

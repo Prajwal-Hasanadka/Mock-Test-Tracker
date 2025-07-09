@@ -67,6 +67,21 @@
                 <div class="spinner mr-3"></div>
                 Loading data...
             </div>
+            <!-- New Google Sign-In Button -->
+            <button id="googleSignInBtn"
+                    class="mt-4 inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out">
+                <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h6.16c-.23 1.12-.85 2.07-1.77 2.71v2.79h3.58c2.09-1.93 3.3-4.78 3.3-8.01z" fill="#4285F4"/>
+                    <path d="M12 23c3.24 0 5.95-1.08 7.93-2.93l-3.58-2.79c-.93.64-1.97 1.01-3.21 1.01-2.47 0-4.56-1.66-5.33-3.88H2.93v2.79C4.91 21.92 8.25 23 12 23z" fill="#34A853"/>
+                    <path d="M6.67 14.07c-.1-.32-.16-.65-.16-1.01s.06-.69.16-1.01V9.27H2.93c-.64 1.25-.99 2.64-.99 4.09s.35 2.84.99 4.09h3.74V14.07z" fill="#FBBC05"/>
+                    <path d="M12 5.86c1.77 0 3.34.61 4.59 1.79l3.19-3.19C17.95 1.08 15.24 0 12 0 8.25 0 4.91 1.08 2.93 3.08l3.74 2.91c.77-2.22 2.86-3.88 5.33-3.88z" fill="#EA4335"/>
+                </svg>
+                Sign in with Google
+            </button>
+            <button id="signOutBtn"
+                    class="mt-4 ml-2 inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-gray-700 bg-gray-300 hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-150 ease-in-out hidden">
+                Sign Out
+            </button>
         </div>
 
         <!-- Home Section: Form and Table -->
@@ -235,7 +250,7 @@
     <script type="module">
         // Firebase SDK imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, linkWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, query, onSnapshot, addDoc, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // =====================================================================
@@ -246,13 +261,12 @@
         // Make sure to replace the entire placeholder object.
         // =====================================================================
         const firebaseConfig = {
-            apiKey: "AIzaSyDDeQwYx4Z3yeHyanftxJ2BnQYL5qFHGi4",
-  authDomain: "mock-result-tracker.firebaseapp.com",
-  projectId: "mock-result-tracker",
-  storageBucket: "mock-result-tracker.firebasestorage.app",
-  messagingSenderId: "1075163815431",
-  appId: "1:1075163815431:web:5e0ef56a32b0bdd4f054a2",
-  measurementId: "G-8QCPD6MDHL"
+            apiKey: "YOUR_API_KEY", // Example: "AIzaSyC0-..."
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID", // Example: "my-mock-tracker-12345"
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID" // Example: "1:1234567890:web:abcdef12345"
         };
         // =====================================================================
 
@@ -260,19 +274,15 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
+        const googleProvider = new GoogleAuthProvider(); // Initialize Google Auth Provider
 
         // Define a fixed application ID for the collection path.
-        // This is used instead of __app_id which is not available on GitHub Pages.
-        const APP_ID_FOR_FIRESTORE = "mocktesttracker-pcm"; // You can change this to any unique string
+        const APP_ID_FOR_FIRESTORE = "mocktesttracker-pcm";
 
         // Variables to store current user ID and Firestore unsubscribe function
         let currentUserId = null;
-        let unsubscribe = null; // Stores the function to unsubscribe from Firestore listener
-
-        // Array to store mock test results, updated by Firestore's real-time listener
+        let unsubscribe = null;
         let mockTestResults = [];
-
-        // Chart.js instance variable
         let scoreChartInstance = null;
 
         // Get references to HTML elements
@@ -284,12 +294,15 @@
         const scoreChartCanvas = document.getElementById('scoreChart');
         const noChartDataMessage = document.getElementById('noChartDataMessage');
 
-        // New elements for section toggling
+        // Elements for section toggling
         const homeSection = document.getElementById('homeSection');
         const chartSection = document.getElementById('chartSection');
         const homeNavBtn = document.getElementById('homeNavBtn');
         const chartNavBtn = document.getElementById('chartNavBtn');
 
+        // New Auth UI elements
+        const googleSignInBtn = document.getElementById('googleSignInBtn');
+        const signOutBtn = document.getElementById('signOutBtn');
 
         // Message Box elements
         const messageBox = document.getElementById('messageBox');
@@ -309,7 +322,7 @@
             return new Promise((resolve) => {
                 messageBoxTitle.textContent = title;
                 messageBoxContent.textContent = message;
-                messageBoxCancel.classList.toggle('hidden', !isConfirm); // Show cancel button only for confirm
+                messageBoxCancel.classList.toggle('hidden', !isConfirm);
                 messageBox.classList.remove('hidden');
 
                 const handleConfirm = () => {
@@ -447,7 +460,6 @@
          */
         function updateScoreChart(data) {
             // Only update chart if the chart section is currently visible
-            // This prevents errors if canvas is not in the DOM
             if (chartSection.classList.contains('hidden')) {
                 return;
             }
@@ -579,7 +591,7 @@
             event.preventDefault(); // Prevent default form submission
 
             if (!currentUserId) {
-                showMessageBox('Error', 'Not authenticated. Please wait for authentication to complete.', false);
+                showMessageBox('Error', 'Not authenticated. Please wait for authentication to complete or sign in.', false);
                 return;
             }
 
@@ -699,7 +711,7 @@
 
             // Define the collection path for the current user's private data
             const userResultsCollectionRef = collection(db, `artifacts/${APP_ID_FOR_FIRESTORE}/users/${currentUserId}/mockTestResults`);
-            const q = query(userResultsCollectionRef); // No orderBy to avoid needing indexes
+            const q = query(userResultsCollectionRef);
 
             // Set up the real-time listener
             unsubscribe = onSnapshot(q, (snapshot) => {
@@ -720,12 +732,57 @@
             });
         }
 
+        // --- Google Sign-In and Sign-Out Logic ---
+
+        googleSignInBtn.addEventListener('click', async () => {
+            try {
+                if (auth.currentUser && auth.currentUser.isAnonymous) {
+                    // If currently anonymous, link the anonymous account to Google
+                    const result = await linkWithPopup(auth.currentUser, googleProvider);
+                    console.log("Anonymous account linked to Google:", result.user);
+                    showMessageBox('Success', `Successfully linked anonymous account to Google: ${result.user.displayName || result.user.email}`, false);
+                } else {
+                    // If not signed in or not anonymous, sign in directly with Google
+                    const result = await signInWithPopup(auth, googleProvider);
+                    console.log("Signed in with Google:", result.user);
+                    showMessageBox('Success', `Successfully signed in with Google: ${result.user.displayName || result.user.email}`, false);
+                }
+            } catch (error) {
+                console.error("Error during Google Sign-In or linking:", error);
+                let errorMessage = "Failed to sign in with Google.";
+                if (error.code === 'auth/popup-closed-by-user') {
+                    errorMessage = "Google Sign-In popup was closed. Please try again.";
+                } else if (error.code === 'auth/credential-already-in-use') {
+                    errorMessage = "This Google account is already linked to another user. Please sign in with that account.";
+                } else if (error.message) {
+                    errorMessage += ` ${error.message}`;
+                }
+                showMessageBox('Sign-In Error', errorMessage, false);
+            }
+        });
+
+        signOutBtn.addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                showMessageBox('Success', 'You have been signed out.', false);
+                // After signing out, the onAuthStateChanged listener will trigger and re-sign in anonymously
+            } catch (error) {
+                console.error("Error signing out:", error);
+                showMessageBox('Sign-Out Error', `Failed to sign out: ${error.message}`, false);
+            }
+        });
+
         // Handle Firebase Authentication state changes
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // User is signed in.
+                // User is signed in (either anonymously or via Google)
                 currentUserId = user.uid;
-                userIdDisplay.textContent = `User ID: ${currentUserId}`;
+                userIdDisplay.textContent = `User ID: ${user.displayName || user.email || user.uid} (Type: ${user.isAnonymous ? 'Anonymous' : 'Google'})`;
+
+                // Show/hide sign-in/sign-out buttons based on auth state
+                googleSignInBtn.classList.add('hidden'); // Hide sign-in button if already signed in
+                signOutBtn.classList.remove('hidden');
+
                 // Start listening to Firestore for data
                 if (unsubscribe) unsubscribe(); // Unsubscribe from any previous listener
                 startFirestoreListener();
@@ -733,15 +790,17 @@
                 // User is signed out or not yet signed in.
                 currentUserId = null;
                 userIdDisplay.textContent = 'Authenticating...';
-                loadingMessage.classList.remove('hidden'); // Show loading message
+                loadingMessage.classList.remove('hidden');
+                googleSignInBtn.classList.remove('hidden'); // Show sign-in button
+                signOutBtn.classList.add('hidden');
 
-                // Sign in anonymously for GitHub Pages deployment
+                // If no user, attempt anonymous sign-in to ensure data persistence for non-logged-in users
                 try {
                     await signInAnonymously(auth);
                 } catch (anonError) {
                     console.error("Error signing in anonymously:", anonError);
-                    showMessageBox('Authentication Error', `Failed to authenticate anonymously: ${anonError.message}`, false);
-                    loadingMessage.classList.add('hidden'); // Hide loading if all auth fails
+                    showMessageBox('Authentication Error', `Failed to authenticate anonymously: ${anonError.message}. Please try refreshing the page.`, false);
+                    loadingMessage.classList.add('hidden');
                 }
             }
         });

@@ -26,11 +26,32 @@
             padding: 0.75rem;
             border-bottom: 1px solid #e2e8f0; /* Light gray border */
         }
+        /* Styling for loading spinner */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #6366f1; /* Indigo-600 */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="p-4 sm:p-6 md:p-8 lg:p-10">
     <div class="max-w-7xl mx-auto bg-white rounded-xl shadow-lg p-6 sm:p-8">
         <h1 class="text-3xl sm:text-4xl font-extrabold text-center text-indigo-700 mb-8">Weekly Mock Test Tracker (Physics, Chemistry, Mathematics)</h1>
+
+        <!-- User ID Display and Loading Message -->
+        <div class="text-center mb-6">
+            <p id="userIdDisplay" class="text-sm text-gray-600 mb-2">Authenticating...</p>
+            <div id="loadingMessage" class="flex items-center justify-center text-indigo-600 text-lg font-medium">
+                <div class="spinner mr-3"></div>
+                Loading data...
+            </div>
+        </div>
 
         <!-- Form to Add New Test Results -->
         <div class="mb-8 p-6 bg-indigo-50 rounded-lg shadow-md">
@@ -179,17 +200,35 @@
 
     </div>
 
-    <script>
-        // Key for storing data in localStorage
-        const LOCAL_STORAGE_KEY = 'mockTestResultsPCM'; // Changed key to avoid conflict with previous version
+    <script type="module">
+        // Firebase SDK imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, query, onSnapshot, addDoc, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Array to store all mock test results, initialized from localStorage
-        let mockTestResults = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || [];
+        // Global variables provided by the environment for Firebase configuration
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // Variables to store current user ID and Firestore unsubscribe function
+        let currentUserId = null;
+        let unsubscribe = null; // Stores the function to unsubscribe from Firestore listener
+
+        // Array to store mock test results, updated by Firestore's real-time listener
+        let mockTestResults = [];
 
         // Get references to HTML elements
         const testForm = document.getElementById('testForm');
         const resultsTableBody = document.getElementById('resultsTableBody');
         const noResultsMessage = document.getElementById('noResultsMessage');
+        const userIdDisplay = document.getElementById('userIdDisplay');
+        const loadingMessage = document.getElementById('loadingMessage');
 
         // Message Box elements
         const messageBox = document.getElementById('messageBox');
@@ -197,13 +236,6 @@
         const messageBoxContent = document.getElementById('messageBoxContent');
         const messageBoxConfirm = document.getElementById('messageBoxConfirm');
         const messageBoxCancel = document.getElementById('messageBoxCancel');
-
-        /**
-         * Saves the current mockTestResults array to localStorage.
-         */
-        function saveResults() {
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(mockTestResults));
-        }
 
         /**
          * Displays a custom message box.
@@ -262,7 +294,8 @@
         }
 
         /**
-         * Renders all mock test results into the table.
+         * Renders all mock test results into the table. This function is called
+         * whenever data changes in Firestore.
          */
         function renderResults() {
             resultsTableBody.innerHTML = ''; // Clear existing rows
@@ -275,6 +308,8 @@
             }
 
             // Sort results by date in descending order (most recent first)
+            // Note: Firestore orderBy is avoided due to potential index issues,
+            // so sorting is done client-side.
             const sortedResults = [...mockTestResults].sort((a, b) => new Date(b.testDate) - new Date(a.testDate));
 
             sortedResults.forEach((result) => {
@@ -306,12 +341,12 @@
                 const editButton = document.createElement('button');
                 editButton.textContent = 'Edit';
                 editButton.className = 'px-3 py-1 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition duration-150 ease-in-out';
-                editButton.onclick = () => editResult(result.id); // Use unique ID for editing
+                editButton.onclick = () => editResult(result.id); // Use Firestore document ID for editing
 
                 const deleteButton = document.createElement('button');
                 deleteButton.textContent = 'Delete';
                 deleteButton.className = 'px-3 py-1 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 transition duration-150 ease-in-out';
-                deleteButton.onclick = () => deleteResult(result.id); // Use unique ID for deleting
+                deleteButton.onclick = () => deleteResult(result.id); // Use Firestore document ID for deleting
 
                 actionsCell.appendChild(editButton);
                 actionsCell.appendChild(deleteButton);
@@ -325,8 +360,13 @@
          * Handles the submission of the form to add a new test result or update an existing one.
          * @param {Event} event - The form submission event.
          */
-        testForm.addEventListener('submit', (event) => {
+        testForm.addEventListener('submit', async (event) => {
             event.preventDefault(); // Prevent default form submission
+
+            if (!currentUserId) {
+                showMessageBox('Error', 'Not authenticated. Please wait for authentication to complete.', false);
+                return;
+            }
 
             // Get values from form inputs
             const testDate = document.getElementById('testDate').value;
@@ -348,42 +388,38 @@
             const percentage = calculatePercentage(yourScore, maxMarks);
             const accuracy = calculateAccuracy(correctAnswers, incorrectAnswers);
 
-            if (editingResultId !== null) {
-                // Update existing result
-                const resultIndex = mockTestResults.findIndex(result => result.id === editingResultId);
-                if (resultIndex > -1) {
-                    mockTestResults[resultIndex] = {
-                        ...mockTestResults[resultIndex], // Keep existing ID
-                        testDate, testName, maxMarks, yourScore, percentage,
-                        rank, timeTaken, physicsScore, chemistryScore, mathScore, // Updated subject names
-                        totalQuestions, correctAnswers, incorrectAnswers, unattemptedQuestions,
-                        accuracy, remarks
-                    };
+            const resultData = {
+                testDate, testName, maxMarks, yourScore, percentage,
+                rank, timeTaken, physicsScore, chemistryScore, mathScore,
+                totalQuestions, correctAnswers, incorrectAnswers, unattemptedQuestions,
+                accuracy, remarks,
+                timestamp: new Date() // Add a timestamp for potential future sorting/tracking
+            };
+
+            try {
+                if (editingResultId !== null) {
+                    // Update existing result in Firestore
+                    const docRef = doc(db, `artifacts/${appId}/users/${currentUserId}/mockTestResults`, editingResultId);
+                    await updateDoc(docRef, resultData);
                     showMessageBox('Success', 'Mock test result updated successfully!', false);
+                } else {
+                    // Add new result to Firestore
+                    await addDoc(collection(db, `artifacts/${appId}/users/${currentUserId}/mockTestResults`), resultData);
+                    showMessageBox('Success', 'Mock test result added successfully!', false);
                 }
+            } catch (e) {
+                console.error("Error adding/updating document: ", e);
+                showMessageBox('Error', `Failed to save result: ${e.message}`, false);
+            } finally {
                 editingResultId = null; // Reset editing state
                 document.querySelector('button[type="submit"]').textContent = 'Add Result'; // Change button text back
-            } else {
-                // Add new result
-                const newResult = {
-                    id: Date.now(), // Simple unique ID based on timestamp
-                    testDate, testName, maxMarks, yourScore, percentage,
-                    rank, timeTaken, physicsScore, chemistryScore, mathScore, // Updated subject names
-                    totalQuestions, correctAnswers, incorrectAnswers, unattemptedQuestions,
-                    accuracy, remarks
-                };
-                mockTestResults.push(newResult);
-                showMessageBox('Success', 'Mock test result added successfully!', false);
+                testForm.reset(); // Clear the form
             }
-
-            saveResults(); // Save to localStorage
-            renderResults(); // Re-render the table
-            testForm.reset(); // Clear the form
         });
 
         /**
          * Populates the form with existing data for editing.
-         * @param {number} id - The unique ID of the result to edit.
+         * @param {string} id - The Firestore document ID of the result to edit.
          */
         function editResult(id) {
             const resultToEdit = mockTestResults.find(result => result.id === id);
@@ -401,11 +437,11 @@
             document.getElementById('testName').value = resultToEdit.testName;
             document.getElementById('maxMarks').value = resultToEdit.maxMarks;
             document.getElementById('yourScore').value = resultToEdit.yourScore;
-            document.getElementById('rank').value = resultToEdit.rank || ''; // Use empty string for null/undefined
+            document.getElementById('rank').value = resultToEdit.rank || '';
             document.getElementById('timeTaken').value = resultToEdit.timeTaken || '';
-            document.getElementById('physicsScore').value = resultToEdit.physicsScore || ''; // Physics Score
-            document.getElementById('chemistryScore').value = resultToEdit.chemistryScore || ''; // Chemistry Score
-            document.getElementById('mathScore').value = resultToEdit.mathScore || ''; // Mathematics Score
+            document.getElementById('physicsScore').value = resultToEdit.physicsScore || '';
+            document.getElementById('chemistryScore').value = resultToEdit.chemistryScore || '';
+            document.getElementById('mathScore').value = resultToEdit.mathScore || '';
             document.getElementById('totalQuestions').value = resultToEdit.totalQuestions || '';
             document.getElementById('correctAnswers').value = resultToEdit.correctAnswers || '';
             document.getElementById('incorrectAnswers').value = resultToEdit.incorrectAnswers || '';
@@ -414,8 +450,8 @@
         }
 
         /**
-         * Deletes a mock test result from the array.
-         * @param {number} id - The unique ID of the result to delete.
+         * Deletes a mock test result from Firestore.
+         * @param {string} id - The Firestore document ID of the result to delete.
          */
         async function deleteResult(id) {
             const confirmDelete = await showMessageBox(
@@ -425,15 +461,98 @@
             );
 
             if (confirmDelete) {
-                mockTestResults = mockTestResults.filter(result => result.id !== id);
-                saveResults(); // Save to localStorage after deletion
-                renderResults(); // Re-render the table after deletion
-                showMessageBox('Success', 'Mock test result deleted successfully!', false);
+                try {
+                    const docRef = doc(db, `artifacts/${appId}/users/${currentUserId}/mockTestResults`, id);
+                    await deleteDoc(docRef);
+                    showMessageBox('Success', 'Mock test result deleted successfully!', false);
+                } catch (e) {
+                    console.error("Error deleting document: ", e);
+                    showMessageBox('Error', `Failed to delete result: ${e.message}`, false);
+                }
             }
         }
 
-        // Initial render when the page loads
-        document.addEventListener('DOMContentLoaded', renderResults);
+        /**
+         * Starts the Firestore real-time listener for mock test results.
+         * This function is called once the user is authenticated.
+         */
+        function startFirestoreListener() {
+            if (!currentUserId) {
+                console.warn("Firestore listener not started: No current user ID.");
+                return;
+            }
+
+            // Define the collection path for the current user's private data
+            const userResultsCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/mockTestResults`);
+            const q = query(userResultsCollectionRef); // No orderBy to avoid needing indexes
+
+            // Set up the real-time listener
+            unsubscribe = onSnapshot(q, (snapshot) => {
+                mockTestResults = []; // Clear current array
+                snapshot.forEach((doc) => {
+                    // Add document ID along with its data
+                    mockTestResults.push({ id: doc.id, ...doc.data() });
+                });
+                renderResults(); // Re-render the UI with the latest data
+                loadingMessage.classList.add('hidden'); // Hide loading message once data is loaded
+            }, (error) => {
+                console.error("Error fetching documents from Firestore: ", error);
+                showMessageBox('Data Load Error', `Failed to load test results: ${error.message}`, false);
+                loadingMessage.classList.add('hidden'); // Hide loading message even on error
+            });
+        }
+
+        // Handle Firebase Authentication state changes
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // User is signed in.
+                currentUserId = user.uid;
+                userIdDisplay.textContent = `User ID: ${currentUserId}`;
+                // Start listening to Firestore for data
+                if (unsubscribe) unsubscribe(); // Unsubscribe from any previous listener
+                startFirestoreListener();
+            } else {
+                // User is signed out or not yet signed in.
+                currentUserId = null;
+                userIdDisplay.textContent = 'Authenticating...';
+                loadingMessage.classList.remove('hidden'); // Show loading message
+
+                if (initialAuthToken) {
+                    // Try to sign in with the provided custom token
+                    try {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                    } catch (error) {
+                        console.error("Error signing in with custom token:", error);
+                        showMessageBox('Authentication Failed', `Failed to sign in with provided token. Attempting anonymous sign-in.`, false);
+                        // Fallback to anonymous sign-in if custom token fails
+                        try {
+                            await signInAnonymously(auth);
+                        } catch (anonError) {
+                            console.error("Error signing in anonymously:", anonError);
+                            showMessageBox('Authentication Error', `Failed to authenticate: ${anonError.message}`, false);
+                            loadingMessage.classList.add('hidden'); // Hide loading if all auth fails
+                        }
+                    }
+                } else {
+                    // No custom token provided, sign in anonymously
+                    try {
+                        await signInAnonymously(auth);
+                    } catch (anonError) {
+                        console.error("Error signing in anonymously:", anonError);
+                        showMessageBox('Authentication Error', `Failed to authenticate anonymously: ${anonError.message}`, false);
+                        loadingMessage.classList.add('hidden'); // Hide loading if all auth fails
+                    }
+                }
+            }
+        });
+
+        // Cleanup: On window unload, unsubscribe from Firestore listener to prevent memory leaks
+        window.addEventListener('beforeunload', () => {
+            if (unsubscribe) {
+                unsubscribe();
+                console.log("Firestore listener unsubscribed.");
+            }
+        });
     </script>
 </body>
 </html>
